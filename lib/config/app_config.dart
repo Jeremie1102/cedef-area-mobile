@@ -6,7 +6,7 @@ class AppConfig {
 
   // Base de données locale
   static const String databaseName = 'cedef_area.db';
-  static const int databaseVersion = 7;
+  static const int databaseVersion = 8;
 
   // Dossiers de stockage local
   static const String mediaFolderName = 'cedef_media';

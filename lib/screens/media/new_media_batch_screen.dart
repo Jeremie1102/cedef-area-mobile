@@ -161,6 +161,24 @@ class _NewMediaBatchScreenState extends State<NewMediaBatchScreen> {
     }
   }
 
+  Future<void> _takePhoto() async {
+    if (_photos.length >= AppConfig.mediaBatchMaxPhotos) {
+      _showMessage('Ce lot contient déjà le maximum de ${AppConfig.mediaBatchMaxPhotos} photos.');
+      return;
+    }
+    setState(() => _isPicking = true);
+    try {
+      final photo = await _mediaService.takePhotoWithCamera();
+      if (!mounted) return;
+      if (photo != null) {
+        setState(() => _photos = [..._photos, photo]);
+        await _refreshTotalSize();
+      }
+    } finally {
+      if (mounted) setState(() => _isPicking = false);
+    }
+  }
+
   Future<void> _refreshTotalSize() async {
     final total = await _mediaService.totalBytes(_photos);
     if (!mounted) return;
@@ -275,17 +293,28 @@ class _NewMediaBatchScreenState extends State<NewMediaBatchScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.photo_library_outlined, size: 56, color: Colors.grey),
+            const Icon(Icons.camera_alt_outlined, size: 56, color: Colors.grey),
             const SizedBox(height: 16),
             const Text(
-              'Sélectionnez les photos de la galerie qui illustrent cette activité.',
+              'Capturez des photos sur le terrain ou sélectionnez-les dans la galerie.',
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: _isPicking ? null : _pickPhotos,
-              icon: const Icon(Icons.add_photo_alternate_outlined),
-              label: Text(_isPicking ? 'Ouverture…' : 'Sélectionner dans la galerie'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                FilledButton.icon(
+                  onPressed: _isPicking ? null : _takePhoto,
+                  icon: const Icon(Icons.camera_alt),
+                  label: const Text('Prendre photo'),
+                ),
+                const SizedBox(width: 12),
+                OutlinedButton.icon(
+                  onPressed: _isPicking ? null : _pickPhotos,
+                  icon: const Icon(Icons.photo_library_outlined),
+                  label: const Text('Galerie'),
+                ),
+              ],
             ),
           ],
         ),
@@ -309,10 +338,20 @@ class _NewMediaBatchScreenState extends State<NewMediaBatchScreen> {
                 '${_photos.length} photo${_photos.length > 1 ? 's' : ''} sélectionnée${_photos.length > 1 ? 's' : ''}',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              TextButton.icon(
-                onPressed: _isPicking ? null : _pickPhotos,
-                icon: const Icon(Icons.add),
-                label: const Text('Ajouter'),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    onPressed: _isPicking ? null : _takePhoto,
+                    icon: const Icon(Icons.camera_alt_outlined),
+                    tooltip: 'Prendre une photo',
+                  ),
+                  IconButton(
+                    onPressed: _isPicking ? null : _pickPhotos,
+                    icon: const Icon(Icons.add_photo_alternate_outlined),
+                    tooltip: 'Ajouter depuis la galerie',
+                  ),
+                ],
               ),
             ],
           ),

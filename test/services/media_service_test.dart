@@ -242,4 +242,87 @@ void main() {
       throwsA(isA<MediaException>()),
     );
   });
+
+  test('crée un lot avec capture des métadonnées GPS et de localisation', () async {
+    final userId = await insertUser();
+    final gpsServiceWithPosition = GpsService(
+      permissionChecker: () async => true,
+      positionProvider: () async => Position(
+        latitude: -4.325,
+        longitude: 15.312,
+        timestamp: DateTime.now(),
+        accuracy: 5.0,
+        altitude: 300.0,
+        altitudeAccuracy: 1.0,
+        heading: 0,
+        headingAccuracy: 0,
+        speed: 0,
+        speedAccuracy: 0,
+      ),
+    );
+    final service = MediaService(
+      mediaRepository: mediaRepository,
+      gpsService: gpsServiceWithPosition,
+    );
+
+    final photo = await createFakePhoto('gps_pic.jpg');
+    final batch = await service.createBatch(
+      userId: userId,
+      photos: [photo],
+      description: 'Constat infrastructure villageoise',
+      activity: 'Infrastructure',
+      cldId: 10,
+      villageId: 25,
+      secteurId: 2,
+      groupementId: 5,
+    );
+
+    expect(batch.latitude, -4.325);
+    expect(batch.longitude, 15.312);
+    expect(batch.gpsAccuracy, 5.0);
+    expect(batch.cldId, 10);
+    expect(batch.villageId, 25);
+    expect(batch.activity, 'Infrastructure');
+    expect(batch.syncStatus, SyncStatus.pending);
+  });
+
+  test('ajoute des photos à un lot existant et met à jour les items', () async {
+    final userId = await insertUser();
+    final batch = await mediaService.createBatch(
+      userId: userId,
+      photos: [await createFakePhoto('init.jpg')],
+      description: 'Lot extensible',
+    );
+
+    await mediaService.addPhotosToBatch(
+      batchId: batch.id!,
+      batchLocalId: batch.localId,
+      photos: [await createFakePhoto('added.jpg')],
+      startSortOrder: 1,
+    );
+
+    final items = await mediaRepository.getItemsByBatch(batch.id!);
+    expect(items, hasLength(2));
+    expect(items[0].sortOrder, 0);
+    expect(items[1].sortOrder, 1);
+  });
+
+  test('retire une photo d\'un lot et supprime le fichier de travail', () async {
+    final userId = await insertUser();
+    final batch = await mediaService.createBatch(
+      userId: userId,
+      photos: [await createFakePhoto('p1.jpg'), await createFakePhoto('p2.jpg')],
+      description: 'Lot à élaguer',
+    );
+
+    final itemsBefore = await mediaRepository.getItemsByBatch(batch.id!);
+    expect(itemsBefore, hasLength(2));
+    final itemToRemove = itemsBefore.last;
+
+    await mediaService.removeItem(itemToRemove);
+
+    final itemsAfter = await mediaRepository.getItemsByBatch(batch.id!);
+    expect(itemsAfter, hasLength(1));
+    expect(await File(itemToRemove.localPath).exists(), isFalse);
+  });
 }

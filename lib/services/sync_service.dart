@@ -100,6 +100,10 @@ class SyncService {
     stateNotifier.value = SyncRunState.syncing;
 
     try {
+      // Récupération des entrées éventuellement orphelines à l'état `syncing`
+      // avant de démarrer un cycle complet.
+      await _queueRepository.resetStaleSyncingStates();
+
       if (!await _connectivityService.isOnline()) {
         return const SyncRunSummary(outcome: SyncOutcome.offline);
       }
@@ -135,8 +139,10 @@ class SyncService {
       try {
         final result = await _apiProvider.send(entry).timeout(_sendTimeout);
         if (result.success) {
-          await _applyResult(entry, result);
-          await _queueRepository.markAsSynced(entry.id!);
+          await _queueRepository.applyResultWithQueueStatus(
+            entry: entry,
+            serverId: result.serverId,
+          );
           uploaded++;
         } else {
           await _queueRepository.markAsFailed(entry.id!, error: result.error);
@@ -171,29 +177,5 @@ class SyncService {
     } catch (_) {
       return 0;
     }
-  }
-
-  /// Met à jour la ligne locale correspondant à [entry] : `server_id` (pour
-  /// une création) et `sync_status = synced`. Générique à toutes les tables
-  /// grâce aux colonnes communes `local_id`/`server_id`/`sync_status` (voir
-  /// `SyncColumns`) : une entité déjà supprimée localement (opération
-  /// `delete` déjà appliquée immédiatement par son service, voir
-  /// `MediaService.deleteBatch`) n'a simplement plus de ligne à mettre à
-  /// jour — la requête ne touche alors aucune ligne, sans erreur.
-  Future<void> _applyResult(SyncQueueEntry entry, SyncApiResult result) async {
-    final db = await DatabaseHelper.instance.database;
-    final values = <String, Object?>{
-      'sync_status': SyncStatus.synced.value,
-      'updated_at': DateTime.now().toIso8601String(),
-    };
-    if (result.serverId != null) {
-      values['server_id'] = result.serverId;
-    }
-    await db.update(
-      entry.entityTable,
-      values,
-      where: 'local_id = ?',
-      whereArgs: [entry.entityLocalId],
-    );
   }
 }

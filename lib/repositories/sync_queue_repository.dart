@@ -14,9 +14,10 @@ import '../models/sync_queue_entry.dart';
 const Map<String, int> _entityPriority = {
   DatabaseTables.users: 0,
   DatabaseTables.missions: 1,
-  DatabaseTables.gpsPositions: 2,
-  DatabaseTables.mediaBatches: 3,
-  DatabaseTables.mediaItems: 4,
+  DatabaseTables.observations: 2,
+  DatabaseTables.gpsPositions: 3,
+  DatabaseTables.mediaBatches: 4,
+  DatabaseTables.mediaItems: 5,
 };
 
 const int _defaultPriority = 99;
@@ -195,6 +196,40 @@ class SyncQueueRepository {
     );
   }
 
+  /// Applique de manière transactionnelle la mise à jour de l'entité locale
+  /// (`sync_status = synced`, `server_id`) et le statut `synced` de l'entrée `sync_queue`.
+  Future<void> applyResultWithQueueStatus({
+    required SyncQueueEntry entry,
+    int? serverId,
+  }) async {
+    final db = await DatabaseHelper.instance.database;
+    final nowIso = DateTime.now().toIso8601String();
+    final entityValues = <String, Object?>{
+      'sync_status': SyncStatus.synced.value,
+      'updated_at': nowIso,
+    };
+    if (serverId != null) {
+      entityValues['server_id'] = serverId;
+    }
+
+    await db.transaction((txn) async {
+      await txn.update(
+        entry.entityTable,
+        entityValues,
+        where: 'local_id = ?',
+        whereArgs: [entry.entityLocalId],
+      );
+      if (entry.id != null) {
+        await txn.update(
+          DatabaseTables.syncQueue,
+          {'status': SyncStatus.synced.value, 'updated_at': nowIso},
+          where: 'id = ?',
+          whereArgs: [entry.id],
+        );
+      }
+    });
+  }
+
   Future<void> _setStatus(int id, SyncStatus status) async {
     final db = await DatabaseHelper.instance.database;
     await db.update(
@@ -231,6 +266,19 @@ class SyncQueueRepository {
       DatabaseTables.syncQueue,
       where: 'status = ? AND updated_at < ?',
       whereArgs: [SyncStatus.synced.value, threshold],
+    );
+  }
+
+  /// Réinitialise les entrées restées bloquées à l'état `syncing` (par exemple
+  /// suite à un arrêt brutal de l'application pendant une requête réseau)
+  /// en les remettant à `pending` afin qu'elles puissent être retraitées.
+  Future<int> resetStaleSyncingStates() async {
+    final db = await DatabaseHelper.instance.database;
+    return db.update(
+      DatabaseTables.syncQueue,
+      {'status': SyncStatus.pending.value, 'updated_at': DateTime.now().toIso8601String()},
+      where: 'status = ?',
+      whereArgs: [SyncStatus.syncing.value],
     );
   }
 

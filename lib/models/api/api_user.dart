@@ -29,15 +29,20 @@ class ApiUser {
   String get fullName => [nom, postnom, prenom].where((p) => p != null && p.isNotEmpty).join(' ');
 
   factory ApiUser.fromJson(Map<String, dynamic> json) {
+    final actifVal = json['actif'] ?? json['is_active'];
+    final bool isActif = actifVal is bool
+        ? actifVal
+        : (actifVal == 1 || actifVal == '1' || actifVal == null);
+
     return ApiUser(
-      id: json['id'] as int,
-      nom: json['nom'] as String,
+      id: (json['id'] as num).toInt(),
+      nom: (json['nom'] ?? json['name'] ?? '') as String,
       postnom: json['postnom'] as String?,
       prenom: json['prenom'] as String?,
-      email: json['email'] as String,
-      fonction: json['fonction'] as String?,
-      photoProfil: json['photo_profil'] as String?,
-      actif: json['actif'] as bool,
+      email: (json['email'] ?? json['login'] ?? '') as String,
+      fonction: (json['fonction'] ?? json['role']) as String?,
+      photoProfil: (json['photo_profil'] ?? json['avatar']) as String?,
+      actif: isActif,
     );
   }
 }

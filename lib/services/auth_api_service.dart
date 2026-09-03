@@ -19,15 +19,26 @@ class AuthApiService {
 
   AuthApiService({ApiClient? client}) : _client = client ?? DioApiClient();
 
-  Future<ApiLoginResult> login({required String email, required String password}) async {
+  Future<ApiLoginResult> login({
+    required String login,
+    required String password,
+    String deviceName = 'android_flutter',
+  }) async {
     final json = await _client.post(
       '/auth/login',
-      data: {'email': email, 'password': password},
+      data: {
+        'login': login,
+        'password': password,
+        'device_name': deviceName,
+      },
     ) as Map<String, dynamic>;
 
+    final token = (json['token'] ?? json['access_token'] ?? '') as String;
+    final userMap = (json['user'] ?? json['data'] ?? json) as Map<String, dynamic>;
+
     return ApiLoginResult(
-      token: json['token'] as String,
-      user: ApiUser.fromJson(json['user'] as Map<String, dynamic>),
+      token: token,
+      user: ApiUser.fromJson(userMap),
     );
   }
 

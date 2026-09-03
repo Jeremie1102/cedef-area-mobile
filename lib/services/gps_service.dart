@@ -113,6 +113,9 @@ class GpsService {
   Future<bool> ensurePermission() async {
     if (_permissionChecker != null) return _permissionChecker();
 
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) return false;
+
     var permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
@@ -121,15 +124,36 @@ class GpsService {
         permission == LocationPermission.denied) {
       return false;
     }
-    return await Geolocator.isLocationServiceEnabled();
+    return true;
   }
 
   Future<Position> getCurrentPosition() async {
-    final hasPermission = await ensurePermission();
-    if (!hasPermission) {
-      throw const GpsException('La localisation n\'est pas autorisée ou activée.');
+    if (_permissionChecker != null || _positionProvider != null) {
+      final hasPermission = await ensurePermission();
+      if (!hasPermission) {
+        throw const GpsException('La localisation n\'est pas autorisée ou activée.');
+      }
+      return _positionProvider!();
     }
-    if (_positionProvider != null) return _positionProvider();
+
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      throw const GpsException('Le service de localisation (GPS) du téléphone est désactivé.');
+    }
+
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    if (permission == LocationPermission.denied) {
+      throw const GpsException('La permission de localisation a été refusée.');
+    }
+    if (permission == LocationPermission.deniedForever) {
+      throw const GpsException(
+        'La permission de localisation est refusée définitivement. Activez-la dans les paramètres de l\'appareil.',
+      );
+    }
+
     return Geolocator.getCurrentPosition(
       locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
     );

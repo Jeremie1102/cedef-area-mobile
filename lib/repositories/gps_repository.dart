@@ -128,6 +128,18 @@ class GpsRepository {
     );
   }
 
+  /// Réinitialise les positions GPS restées à l'état `syncing` (ex: crash ou
+  /// interruption réseau) en les remettant à `pending`.
+  Future<int> resetStaleSyncingStates() async {
+    final db = await DatabaseHelper.instance.database;
+    return db.update(
+      DatabaseTables.gpsPositions,
+      {'sync_status': SyncStatus.pending.value},
+      where: 'sync_status = ?',
+      whereArgs: [SyncStatus.syncing.value],
+    );
+  }
+
   /// Une ligne par mission ayant au moins une position enregistrée par cet
   /// utilisateur (nombre de positions, bornes temporelles, nombre encore
   /// `pending`), du parcours le plus récent au plus ancien — pour l'écran

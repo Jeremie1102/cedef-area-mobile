@@ -19,13 +19,13 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _loginController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _loginController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -35,7 +35,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final apiAuthProvider = context.read<ApiAuthProvider>();
     final success = await apiAuthProvider.login(
-      email: _emailController.text.trim(),
+      login: _loginController.text.trim(),
       password: _passwordController.text,
     );
 
@@ -79,17 +79,16 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 32),
                   TextFormField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    autofillHints: const [AutofillHints.email],
+                    controller: _loginController,
+                    keyboardType: TextInputType.text,
+                    autofillHints: const [AutofillHints.username, AutofillHints.email],
                     decoration: const InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: Icon(Icons.email_outlined),
+                      labelText: 'Email ou matricule',
+                      prefixIcon: Icon(Icons.person_outline),
                     ),
                     validator: (value) {
                       final trimmed = value?.trim() ?? '';
                       if (trimmed.isEmpty) return 'Champ requis';
-                      if (!trimmed.contains('@')) return 'Email invalide';
                       return null;
                     },
                   ),
@@ -112,12 +111,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   FilledButton(
                     onPressed: isLoading ? null : _submit,
                     child: isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Se connecter'),
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Se connecter'),
                   ),
                   const SizedBox(height: 12),
                   TextButton(

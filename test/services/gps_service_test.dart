@@ -177,6 +177,36 @@ void main() {
       );
     });
 
+    test('enregistre une position avec l\'ensemble des métadonnées terrain réelles', () async {
+      final userId = await insertUser();
+      final missionId = await insertMission(statut: MissionStatus.inProgress);
+      final service = buildService(
+        position: () => Position(
+          latitude: -4.3276,
+          longitude: 15.3136,
+          timestamp: DateTime.now(),
+          accuracy: 8.5,
+          altitude: 350.0,
+          altitudeAccuracy: 1.0,
+          heading: 180.0,
+          headingAccuracy: 5.0,
+          speed: 1.2,
+          speedAccuracy: 0.2,
+        ),
+      );
+
+      final saved = await service.recordPosition(missionId: missionId, userId: userId);
+
+      expect(saved.latitude, -4.3276);
+      expect(saved.longitude, 15.3136);
+      expect(saved.accuracy, 8.5);
+      expect(saved.altitude, 350.0);
+      expect(saved.heading, 180.0);
+      expect(saved.speed, 1.2);
+      expect(saved.syncStatus, SyncStatus.pending);
+      expect(saved.localId, isNotEmpty);
+    });
+
     test('refuse d\'enregistrer une position sans autorisation de localisation', () async {
       final userId = await insertUser();
       final missionId = await insertMission(statut: MissionStatus.inProgress);

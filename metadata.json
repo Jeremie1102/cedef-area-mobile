@@ -1,0 +1,6 @@
+{
+  "name": "CEDEF AREA",
+  "description": "Application terrain de collecte, gestion de missions, suivi GPS et synchronisation hors ligne pour agents CEDEF.",
+  "requestFramePermissions": ["geolocation", "camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -81,6 +81,8 @@ class GpsSyncService {
     isSyncingNotifier.value = true;
 
     try {
+      await _gpsRepository.resetStaleSyncingStates();
+
       if (!await _connectivityService.isOnline()) {
         return const GpsSyncSummary(outcome: GpsSyncOutcome.offline);
       }

@@ -93,13 +93,18 @@ class ApiAuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> login({required String email, required String password}) async {
+  Future<bool> login({
+    String? login,
+    required String password,
+    String? email,
+  }) async {
+    final identifier = (login != null && login.isNotEmpty) ? login : (email ?? '');
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final result = await _authApiService.login(email: email, password: password);
+      final result = await _authApiService.login(login: identifier, password: password);
       await _tokenStorage.saveToken(result.token);
       _currentUser = result.user;
       _isAuthenticated = true;

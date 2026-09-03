@@ -80,6 +80,8 @@ class MediaSyncService {
     isSyncingNotifier.value = true;
 
     try {
+      await _mediaRepository.resetStaleSyncingStates();
+
       if (!await _connectivityService.isOnline()) {
         return const MediaSyncSummary(outcome: MediaSyncOutcome.offline);
       }
@@ -168,20 +170,12 @@ class MediaSyncService {
         villageServerId: villageServerId,
       );
 
-      final now = DateTime.now();
-      await _mediaRepository.updateBatch(
-        batch.copyWith(serverId: result.id, syncStatus: SyncStatus.synced, updatedAt: now),
+      await _mediaRepository.markBatchSyncedWithItems(
+        batch: batch,
+        serverBatchId: result.id,
+        items: items,
+        itemServerIdsByLocalId: result.itemServerIdsByLocalId,
       );
-      for (final item in items) {
-        final itemServerId = result.itemServerIdsByLocalId[item.localId];
-        await _mediaRepository.updateItem(
-          item.copyWith(
-            serverId: itemServerId,
-            syncStatus: SyncStatus.synced,
-            updatedAt: now,
-          ),
-        );
-      }
     } on UnauthorizedException {
       // Ni synced ni failed : la session (pas le lot) est en cause, voir
       // syncPendingBatches. Le lot reste `pending` tel quel.

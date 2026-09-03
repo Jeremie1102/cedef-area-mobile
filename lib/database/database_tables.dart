@@ -23,6 +23,7 @@ class DatabaseTables {
   static const String mediaBatches = 'media_batches';
   static const String mediaItems = 'media_items';
   static const String gpsPositions = 'gps_positions';
+  static const String observations = 'observations';
   static const String syncQueue = 'sync_queue';
   static const String syncMeta = 'sync_meta';
 }

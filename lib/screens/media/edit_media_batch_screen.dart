@@ -112,6 +112,29 @@ class _EditMediaBatchScreenState extends State<EditMediaBatchScreen> {
     setState(() => _items = items);
   }
 
+  Future<void> _takePhoto() async {
+    if (_items.length >= AppConfig.mediaBatchMaxPhotos) {
+      _showMessage('Ce lot contient déjà le maximum de ${AppConfig.mediaBatchMaxPhotos} photos.');
+      return;
+    }
+    final photo = await _mediaService.takePhotoWithCamera();
+    if (photo == null) return;
+    try {
+      await _mediaService.addPhotosToBatch(
+        batchId: widget.batch.id!,
+        batchLocalId: widget.batch.localId,
+        photos: [photo],
+        startSortOrder: _items.length,
+      );
+    } catch (e) {
+      _showMessage(e is AppException ? e.message : 'Impossible d\'ajouter cette photo.');
+      return;
+    }
+    final items = await _mediaRepository.getItemsByBatch(widget.batch.id!);
+    if (!mounted) return;
+    setState(() => _items = items);
+  }
+
   Future<void> _removeItem(MediaItem item) async {
     if (_items.length <= 1) {
       _showMessage('Un lot doit contenir au moins une photo.');
@@ -196,10 +219,20 @@ class _EditMediaBatchScreenState extends State<EditMediaBatchScreen> {
                             '${_items.length} photo${_items.length > 1 ? 's' : ''}',
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
-                          TextButton.icon(
-                            onPressed: _addPhotos,
-                            icon: const Icon(Icons.add),
-                            label: const Text('Ajouter'),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                onPressed: _takePhoto,
+                                icon: const Icon(Icons.camera_alt_outlined),
+                                tooltip: 'Prendre une photo',
+                              ),
+                              IconButton(
+                                onPressed: _addPhotos,
+                                icon: const Icon(Icons.add_photo_alternate_outlined),
+                                tooltip: 'Ajouter depuis la galerie',
+                              ),
+                            ],
                           ),
                         ],
                       ),

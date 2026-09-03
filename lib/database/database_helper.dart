@@ -9,6 +9,7 @@ import 'migrations/migration_v4.dart';
 import 'migrations/migration_v5.dart';
 import 'migrations/migration_v6.dart';
 import 'migrations/migration_v7.dart';
+import 'migrations/migration_v8.dart';
 
 /// Point d'accès unique à la base de données SQLite locale.
 ///
@@ -57,6 +58,7 @@ class DatabaseHelper {
     await MigrationV5.up(db);
     await MigrationV6.up(db);
     await MigrationV7.up(db);
+    await MigrationV8.up(db);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -66,6 +68,7 @@ class DatabaseHelper {
     if (oldVersion < 5) await MigrationV5.up(db);
     if (oldVersion < 6) await MigrationV6.up(db);
     if (oldVersion < 7) await MigrationV7.up(db);
+    if (oldVersion < 8) await MigrationV8.up(db);
   }
 
   Future<void> close() async {

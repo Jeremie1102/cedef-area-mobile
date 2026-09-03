@@ -105,6 +105,117 @@ extension MediaValidationStatusX on MediaValidationStatus {
   }
 }
 
+/// Catégories officielles d'observations et constats terrain.
+enum ObservationCategory {
+  infrastructure,
+  accessibilite,
+  environnement,
+  gouvernance,
+  autre,
+}
+
+extension ObservationCategoryX on ObservationCategory {
+  /// Code officiel utilisé pour le stockage et l'API
+  String get code {
+    switch (this) {
+      case ObservationCategory.infrastructure:
+        return 'INFRASTRUCTURE';
+      case ObservationCategory.accessibilite:
+        return 'ACCESSIBILITÉ';
+      case ObservationCategory.environnement:
+        return 'ENVIRONNEMENT';
+      case ObservationCategory.gouvernance:
+        return 'GOUVERNANCE';
+      case ObservationCategory.autre:
+        return 'AUTRE';
+    }
+  }
+
+  /// Libellé utilisateur français
+  String get label {
+    switch (this) {
+      case ObservationCategory.infrastructure:
+        return 'Infrastructure';
+      case ObservationCategory.accessibilite:
+        return 'Accessibilité';
+      case ObservationCategory.environnement:
+        return 'Environnement';
+      case ObservationCategory.gouvernance:
+        return 'Gouvernance';
+      case ObservationCategory.autre:
+        return 'Autre';
+    }
+  }
+
+  static ObservationCategory fromCode(String? code) {
+    if (code == null) return ObservationCategory.autre;
+    final normalized = code.trim().toUpperCase();
+    switch (normalized) {
+      case 'INFRASTRUCTURE':
+        return ObservationCategory.infrastructure;
+      case 'ACCESSIBILITÉ':
+      case 'ACCESSIBILITE':
+        return ObservationCategory.accessibilite;
+      case 'ENVIRONNEMENT':
+        return ObservationCategory.environnement;
+      case 'GOUVERNANCE':
+        return ObservationCategory.gouvernance;
+      case 'AUTRE':
+      default:
+        return ObservationCategory.autre;
+    }
+  }
+}
+
+/// Niveaux de gravité d'un constat terrain.
+enum ObservationSeverity {
+  info,
+  attention,
+  critique,
+}
+
+extension ObservationSeverityX on ObservationSeverity {
+  /// Code officiel utilisé pour le stockage et l'API
+  String get code {
+    switch (this) {
+      case ObservationSeverity.info:
+        return 'INFO';
+      case ObservationSeverity.attention:
+        return 'ATTENTION';
+      case ObservationSeverity.critique:
+        return 'CRITIQUE';
+    }
+  }
+
+  /// Libellé utilisateur français
+  String get label {
+    switch (this) {
+      case ObservationSeverity.info:
+        return 'Information';
+      case ObservationSeverity.attention:
+        return 'Attention';
+      case ObservationSeverity.critique:
+        return 'Critique';
+    }
+  }
+
+  static ObservationSeverity fromCode(String? code) {
+    if (code == null) return ObservationSeverity.info;
+    final normalized = code.trim().toUpperCase();
+    switch (normalized) {
+      case 'CRITIQUE':
+        return ObservationSeverity.critique;
+      case 'ATTENTION':
+      case 'WARNING':
+        return ObservationSeverity.attention;
+      case 'INFO':
+      case 'INFORMATION':
+      default:
+        return ObservationSeverity.info;
+    }
+  }
+}
+
 /// Liste des activités pouvant être associées à un média.
 ///
 /// Cette liste est volontairement une simple liste de chaînes (et non un enum)

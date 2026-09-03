@@ -86,6 +86,16 @@ void main() {
     expect(provider.localUser!.serverId, 1);
   });
 
+  test('login réussi avec matricule stocke le token et réconcilie l\'utilisateur', () async {
+    final provider = _buildProvider(authResponses: {'POST /auth/login': _loginResponse});
+
+    final success = await provider.login(login: 'MAT-9988', password: 'password');
+
+    expect(success, isTrue);
+    expect(provider.isAuthenticated, isTrue);
+    expect(provider.currentUser?.nom, 'Ondricka');
+  });
+
   test('deux connexions successives réconcilient la même ligne locale (pas de doublon)', () async {
     final provider = _buildProvider(authResponses: {'POST /auth/login': _loginResponse});
 

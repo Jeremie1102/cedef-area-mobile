@@ -42,14 +42,19 @@ class MediaService {
        _imagePicker = imagePicker ?? ImagePicker(),
        _gpsService = gpsService ?? GpsService();
 
-  /// Ouvre le sélecteur de galerie en mode multi-sélection. N'ouvre jamais
-  /// l'appareil photo. Borne dès la sélection système le nombre de photos
+  /// Ouvre le sélecteur de galerie en mode multi-sélection.
+  /// Borne dès la sélection système le nombre de photos
   /// (voir `AppConfig.mediaBatchMaxPhotos`) : jamais plus que nécessaire en
   /// mémoire, quel que soit le nombre de photos choisi par l'agent.
   /// [limit] permet à l'appelant de réduire ce plafond (ajout à un lot déjà
   /// partiellement rempli) ; `null`/absent revient au plafond par défaut.
   Future<List<XFile>> pickPhotosFromGallery({int? limit}) {
     return _imagePicker.pickMultiImage(limit: limit ?? AppConfig.mediaBatchMaxPhotos);
+  }
+
+  /// Ouvre l'appareil photo pour capturer une photo directement sur le terrain.
+  Future<XFile?> takePhotoWithCamera() {
+    return _imagePicker.pickImage(source: ImageSource.camera);
   }
 
   /// Crée un lot de médias à partir de photos déjà sélectionnées dans la

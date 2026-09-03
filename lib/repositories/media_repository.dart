@@ -129,6 +129,26 @@ class MediaRepository {
     return (result.first['total'] as int?) ?? 0;
   }
 
+  /// Réinitialise les lots de médias et photos restés à l'état `syncing`
+  /// (ex: crash ou coupure réseau) en les remettant à `pending`.
+  Future<void> resetStaleSyncingStates() async {
+    final db = await DatabaseHelper.instance.database;
+    await db.transaction((txn) async {
+      await txn.update(
+        DatabaseTables.mediaBatches,
+        {'sync_status': SyncStatus.pending.value, 'updated_at': DateTime.now().toIso8601String()},
+        where: 'sync_status = ?',
+        whereArgs: [SyncStatus.syncing.value],
+      );
+      await txn.update(
+        DatabaseTables.mediaItems,
+        {'sync_status': SyncStatus.pending.value, 'updated_at': DateTime.now().toIso8601String()},
+        where: 'sync_status = ?',
+        whereArgs: [SyncStatus.syncing.value],
+      );
+    });
+  }
+
   /// Lots de l'utilisateur avec le nombre de photos et un aperçu, pour
   /// l'écran « Mes médias ».
   Future<List<MediaBatchSummary>> getBatchSummariesByUser(int userId) async {
@@ -196,6 +216,39 @@ class MediaRepository {
     final rows = await db.query(DatabaseTables.mediaItems, where: 'id = ?', whereArgs: [id], limit: 1);
     if (rows.isEmpty) return null;
     return MediaItem.fromMap(rows.first);
+  }
+
+  /// Met à jour de façon atomique un lot et l'ensemble de ses photos au statut
+  /// `synced` avec leurs identifiants serveurs respectifs.
+  Future<void> markBatchSyncedWithItems({
+    required MediaBatch batch,
+    required int serverBatchId,
+    required List<MediaItem> items,
+    required Map<String, int> itemServerIdsByLocalId,
+  }) async {
+    final db = await DatabaseHelper.instance.database;
+    final now = DateTime.now();
+    await db.transaction((txn) async {
+      await txn.update(
+        DatabaseTables.mediaBatches,
+        batch.copyWith(serverId: serverBatchId, syncStatus: SyncStatus.synced, updatedAt: now).toMap(),
+        where: 'id = ?',
+        whereArgs: [batch.id],
+      );
+      for (final item in items) {
+        final itemServerId = itemServerIdsByLocalId[item.localId];
+        await txn.update(
+          DatabaseTables.mediaItems,
+          item.copyWith(
+            serverId: itemServerId,
+            syncStatus: SyncStatus.synced,
+            updatedAt: now,
+          ).toMap(),
+          where: 'id = ?',
+          whereArgs: [item.id],
+        );
+      }
+    });
   }
 
   /// Retire une photo d'un lot. Ne supprime que la ligne locale (et, côté

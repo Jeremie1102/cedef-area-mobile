@@ -4,6 +4,9 @@ import 'package:provider/provider.dart';
 import '../../config/app_config.dart';
 import '../../providers/api_auth_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../repositories/gps_repository.dart';
+import '../../repositories/media_repository.dart';
+import '../../repositories/sync_queue_repository.dart';
 import '../../routes/app_routes.dart';
 
 /// Vérifie l'état initial de l'application (session serveur existante ou
@@ -32,6 +35,16 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkSession() async {
+    // Réinitialisation des états `syncing` potentiellement bloqués suite à
+    // un arrêt brutal de l'application lors d'une précédente exécution.
+    try {
+      await SyncQueueRepository().resetStaleSyncingStates();
+      await GpsRepository().resetStaleSyncingStates();
+      await MediaRepository().resetStaleSyncingStates();
+    } catch (_) {
+      // Les erreurs non bloquantes d'initialisation ne doivent pas bloquer le démarrage.
+    }
+
     final apiAuthProvider = context.read<ApiAuthProvider>();
     final authProvider = context.read<AuthProvider>();
 
